@@ -27,6 +27,10 @@ def pro_flasche_berechnen(gesamt, malto, fructose, flaschen):
     fructose_pro_flasche = fructose / flaschen
     return carbs_pro_flasche, malto_pro_flasche, fructose_pro_flasche
 
+def konzentration_berechnen(carbs_pro_flasche, volumen_pro_flasche):
+    konzentration = carbs_pro_flasche / volumen_pro_flasche * 100
+    return konzentration
+
 # Eingabe der Werte
 carbs_pro_stunde = st.number_input(
     "Kohlenhydrate pro Stunde in g?",
@@ -67,6 +71,22 @@ if dauer is not None:
             step=0.5
         )
 
+if dauer is None or not flaschen_verwenden:
+    flaschen = None
+
+if flaschen is not None:
+    volumen_verwenden = st.checkbox("Volumen pro Flasche?")
+    if volumen_verwenden:
+        volumen_pro_flasche = st.number_input(
+            "Volumen pro Flasche in ml?",
+            min_value=100.0,
+            value=500.0,
+            step=50.0
+        )
+
+if flaschen is None or not volumen_verwenden:
+    volumen_pro_flasche = None
+
 # Berechnung der Werte
 if dauer is not None:
     gesamt = gesamt_berechnen(carbs_pro_stunde, dauer)
@@ -75,11 +95,11 @@ else:
 
 malto, fructose = mischung_berechnen(gesamt, verhaeltnis)
 
-if dauer is None or not flaschen_verwenden:
-    flaschen = None
-
 if flaschen is not None:
     carbs_pro_flasche, malto_pro_flasche, fructose_pro_flasche = pro_flasche_berechnen(gesamt, malto, fructose, flaschen)
+
+if volumen_pro_flasche is not None:
+    konzentration = konzentration_berechnen(carbs_pro_flasche, volumen_pro_flasche)
 
 # Ausgabe der Ergebnisse
 st.write("Gesamte Kohlenhydrate:", gesamt, "g")
@@ -92,3 +112,6 @@ if flaschen is not None:
 else:
     st.write("Maltodextrin:", round(malto, 1), "g")
     st.write("Fructose:", round(fructose, 1), "g")
+
+if volumen_pro_flasche is not None:
+    st.write("Konzentration pro Flasche:", round(konzentration, 1), "%")
