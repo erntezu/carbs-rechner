@@ -1,3 +1,4 @@
+
 import streamlit as st
 
 st.title("Carbs Rechner")
@@ -13,14 +14,20 @@ if "fahrt" not in st.session_state:
 if "flaschen" not in st.session_state:
     st.session_state["flaschen"] = None
 
-if "zusatz" not in st.session_state:
-    st.session_state["zusatz"] = None
+if "zusaetze_fertig" not in st.session_state:
+    st.session_state["zusaetze_fertig"] = False
 
 plan_vollstaendig = (
     st.session_state["fahrt"] is not None
     and st.session_state["flaschen"] is not None
-    and st.session_state["zusatz"] is not None
+    and st.session_state["zusaetze_fertig"]
 )
+
+if "zusaetze" not in st.session_state:
+    st.session_state["zusaetze"] = []
+
+if "zusatz_bearbeiten" not in st.session_state:
+    st.session_state["zusatz_bearbeiten"] = None
 
 # Definitionen der Funktionen
 # Gesamt
@@ -43,16 +50,6 @@ def verhaeltnis_berechnen(carbs_pro_stunde):
     else:
         return 0.8
 
-def carbs_zusatz_pro_stunde_berechnen(anzahl_riegel, anzahl_gel, carbs_pro_riegel, carbs_pro_gel, verhaeltnis_riegel, verhaeltnis_gel):
-    carbs_riegel_pro_stunde = anzahl_riegel * carbs_pro_riegel
-    carbs_gel_pro_stunde = anzahl_gel * carbs_pro_gel
-    malto_riegel, fructose_riegel = mischung_aufteilen(carbs_riegel_pro_stunde, verhaeltnis_riegel)
-    malto_gel, fructose_gel = mischung_aufteilen(carbs_gel_pro_stunde, verhaeltnis_gel)
-    malto_zusatz_pro_stunde = malto_riegel + malto_gel
-    fructose_zusatz_pro_stunde = fructose_riegel + fructose_gel
-    carbs_zusatz_pro_stunde = carbs_riegel_pro_stunde + carbs_gel_pro_stunde
-    return carbs_zusatz_pro_stunde, malto_zusatz_pro_stunde, fructose_zusatz_pro_stunde
-
 def carbs_flaschen_berechnen(carbs_flaschen_pro_stunde, malto_flaschen_pro_stunde, fructose_flaschen_pro_stunde, dauer):
     carbs_flaschen_gesamt = carbs_flaschen_pro_stunde * dauer
     malto_flaschen_gesamt = malto_flaschen_pro_stunde * dauer
@@ -69,6 +66,19 @@ def konzentration_berechnen(carbs_pro_flasche, volumen_pro_flasche):
     konzentration = carbs_pro_flasche / volumen_pro_flasche * 100
     return konzentration
 
+def zusaetze_berechnen(zusaetze):
+    carbs_zusaetze_pro_stunde = 0.0
+    malto_zusaetze_pro_stunde = 0.0
+    fructose_zusaetze_pro_stunde = 0.0
+
+    for zusatz in zusaetze:
+        carbs_zusaetze = zusatz["anzahl"] * zusatz["carbs"]
+        carbs_zusaetze_pro_stunde += carbs_zusaetze
+        malto_zusatz, fructose_zusatz = mischung_aufteilen(carbs_zusaetze, zusatz["verhaeltnis"])
+        malto_zusaetze_pro_stunde += malto_zusatz
+        fructose_zusaetze_pro_stunde += fructose_zusatz
+
+    return carbs_zusaetze_pro_stunde, malto_zusaetze_pro_stunde, fructose_zusaetze_pro_stunde
 
 # Modus wählen
 modus = st.radio(
@@ -205,74 +215,103 @@ if modus == "Flaschen + Riegel/Gels planen":
 
     #Zusatz Block:
     if st.session_state["schritt"] == "zusatz":
-        with st.form("zusatz_formular"):
-            anzahl_riegel = st.number_input(
-                "Anzahl der Riegel pro Stunde?",
-                min_value=0.0,
-                value=st.session_state["zusatz"]["anzahl_riegel"] if st.session_state["zusatz"] is not None else 0.0,
-                step=0.5
-            )
-            carbs_pro_riegel = st.number_input(
-                "Kohlenhydrate pro Riegel in g?",
-                min_value=0,
-                value=st.session_state["zusatz"]["carbs_pro_riegel"] if st.session_state["zusatz"] is not None else 40,
-                step=5
-            )
-            verhaeltnis_riegel = st.number_input(
-                "Fructose zu 1 Teil Maltodextrin im Riegel?",
-                min_value=0.0,
-                max_value=1.0,
-                value=st.session_state["zusatz"]["verhaeltnis_riegel"] if st.session_state["zusatz"] is not None else 0.5,
-                step=0.05
-            )
-            anzahl_gel = st.number_input(
-                "Anzahl der Gels pro Stunde?",
-                min_value=0.0,
-                value=st.session_state["zusatz"]["anzahl_gel"] if st.session_state["zusatz"] is not None else 0.0,
-                step=0.5
-            )
-            carbs_pro_gel = st.number_input(
-                "Kohlenhydrate pro Gel in g?",
-                min_value=0,
-                value=st.session_state["zusatz"]["carbs_pro_gel"] if st.session_state["zusatz"] is not None else 40,
-                step=5
-            )
-            verhaeltnis_gel = st.number_input(
-                "Fructose zu 1 Teil Maltodextrin im Gel?",
-                min_value=0.0,
-                max_value=1.0,
-                value=st.session_state["zusatz"]["verhaeltnis_gel"] if st.session_state["zusatz"] is not None else 0.5,
-                step=0.05
-            )
-            zusatz_speichern = st.form_submit_button("Zusätze speichern")
-            zusatz_abbrechen = st.form_submit_button("Abbrechen")
+        bearbeiten_index = st.session_state["zusatz_bearbeiten"]
+        gespeicherter_zusatz = None
 
-        if zusatz_speichern:
-            st.session_state["zusatz"] = {
-                "anzahl_riegel": anzahl_riegel,
-                "carbs_pro_riegel": carbs_pro_riegel,
-                "verhaeltnis_riegel": verhaeltnis_riegel,
-                "anzahl_gel": anzahl_gel,
-                "carbs_pro_gel": carbs_pro_gel,
-                "verhaeltnis_gel": verhaeltnis_gel,
-            }
+        if bearbeiten_index is not None:
+            gespeicherter_zusatz = st.session_state["zusaetze"][bearbeiten_index]
+
+        zusatz_abbrechen = False
+
+        with st.form(f"neuer_zusatz_formular_{bearbeiten_index}"):
+            name = st.text_input(
+                "Name des Zusatzes?",
+                value=gespeicherter_zusatz["name"] if gespeicherter_zusatz is not None else ""
+                )
+            anzahl = st.number_input(
+                "Stückzahl pro Stunde:",
+                min_value=0.0,
+                value=gespeicherter_zusatz["anzahl"] if gespeicherter_zusatz is not None else 1.0,
+                step=0.5
+                )
+            carbs = st.number_input(
+                "Kohlenhydrate pro Stück in g:",
+                min_value=0,
+                value=gespeicherter_zusatz["carbs"] if gespeicherter_zusatz is not None else 40,
+                step=5
+                )
+            verhaeltnis = st.number_input(
+                "Fructose zu 1 Teil Glucose/Malto:",
+                min_value=0.0,
+                max_value=1.0,
+                value=gespeicherter_zusatz["verhaeltnis"] if gespeicherter_zusatz is not None else 0.5,
+                step=0.05
+                )
+            zusatz_hinzufuegen = st.form_submit_button(
+                "Änderung speichern" if bearbeiten_index is not None else "Zusatz hinzufügen"
+                )
+            if bearbeiten_index is not None:
+                zusatz_abbrechen = st.form_submit_button("Abbrechen")            
+
+        if zusatz_abbrechen:
+            st.session_state["zusatz_bearbeiten"] = None
+            st.rerun()
+
+        if zusatz_hinzufuegen:
+            if name.strip() == "":
+                st.error("Bitte gib einen Namen für den Zusatz ein.")
+            else:
+                neuer_zusatz = {
+                    "name": name.strip(),
+                    "anzahl": anzahl,
+                    "carbs": carbs,
+                    "verhaeltnis": verhaeltnis
+                }
+                if bearbeiten_index is None:
+                    st.session_state["zusaetze"].append(neuer_zusatz)
+                else:
+                    st.session_state["zusaetze"][bearbeiten_index] = neuer_zusatz
+                st.session_state["zusatz_bearbeiten"] = None
+                st.rerun()
+
+        for index, zusatz in enumerate(st.session_state["zusaetze"]):
+            with st.container(border=True):
+                st.write(f"**{zusatz['name']}**")
+                st.write(
+                    f"{zusatz['anzahl']} Stück/h · "
+                    f"{zusatz['carbs']} g KH pro Stück · "
+                    f"Verhältnis 1:{zusatz['verhaeltnis']}"
+                )
+                st.write(f"Beitrag: {zusatz['anzahl'] * zusatz['carbs']} g KH/h")
+
+                spalte_bearbeiten, spalte_loeschen = st.columns(2)
+
+                with spalte_bearbeiten:
+                    if st.button("Bearbeiten", key=f"zusatz_bearbeiten_{index}"):
+                        st.session_state["zusatz_bearbeiten"] = index
+                        st.rerun()
+                with spalte_loeschen:
+                    if st.button("Löschen", key=f"zusatz_loeschen_{index}"):
+                        st.session_state["zusaetze"].pop(index)
+                        st.session_state["zusatz_bearbeiten"] = None
+                        st.rerun()
+
+        if st.button("Zur Auswertung"):
+            st.session_state["zusaetze_fertig"] = True
             st.session_state["schritt"] = "auswertung"
             st.rerun()
 
-        if zusatz_abbrechen and st.session_state["zusatz"] is not None:
-            st.session_state["schritt"] = "auswertung"
-            st.rerun()
+    if (
+        st.session_state["zusaetze_fertig"]
+        and st.session_state["schritt"] != "zusatz"
+    ):
+        st.write("Gespeicherte Zusatz-Einträge:", len(st.session_state["zusaetze"]))
 
-
-    if st.session_state["zusatz"] is not None and st.session_state["schritt"] != "zusatz":
-        st.write("Anzahl Riegel pro Stunde:", st.session_state["zusatz"]["anzahl_riegel"])
-        st.write("Anzahl Gels pro Stunde:", st.session_state["zusatz"]["anzahl_gel"])
-
-        if st.button("Zusatz bearbeiten"):
+        if st.button("Zusätze bearbeiten"):
             st.session_state["schritt"] = "zusatz"
             st.rerun()
 
-# Aufruf der Werte
+# Aufruf der Werte:
 if modus == "Gesamtmenge berechnen":
     malto_gesamt, fructose_gesamt = mischung_aufteilen(gesamt, verhaeltnis)
 
@@ -295,16 +334,8 @@ if modus == "Flaschen + Riegel/Gels planen":
     verhaeltnis_flaschen = st.session_state["flaschen"].get("verhaeltnis")
     verhaeltnis_flaschen_verwenden = verhaeltnis_flaschen is not None
 
-    if st.session_state["zusatz"] is None:
-        st.stop()
-
-    anzahl_riegel = st.session_state["zusatz"]["anzahl_riegel"]
-    carbs_pro_riegel = st.session_state["zusatz"]["carbs_pro_riegel"]
-    verhaeltnis_riegel = st.session_state["zusatz"]["verhaeltnis_riegel"]
-    anzahl_gel = st.session_state["zusatz"]["anzahl_gel"]
-    carbs_pro_gel = st.session_state["zusatz"]["carbs_pro_gel"]
-    verhaeltnis_gel = st.session_state["zusatz"]["verhaeltnis_gel"]
-    carbs_zusatz_pro_stunde, malto_zusatz_pro_stunde, fructose_zusatz_pro_stunde = carbs_zusatz_pro_stunde_berechnen(anzahl_riegel, anzahl_gel, carbs_pro_riegel, carbs_pro_gel, verhaeltnis_riegel, verhaeltnis_gel)
+    carbs_zusatz_pro_stunde, malto_zusatz_pro_stunde, fructose_zusatz_pro_stunde = zusaetze_berechnen(
+    st.session_state["zusaetze"])
 
     gesamt = gesamt_berechnen(carbs_pro_stunde, dauer)
     verhaeltnis = verhaeltnis_berechnen(carbs_pro_stunde)
