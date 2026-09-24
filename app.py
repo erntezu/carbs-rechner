@@ -86,19 +86,21 @@ modus = st.radio(
 
 # Eingabe der Werte
 if modus == "Gesamtmenge berechnen":
-    gesamt = st.number_input(
-        "Gesamtmenge an Kohlenhydraten in g?",
-        min_value=1,
-        value=90,
-        step=5
-    )
-    verhaeltnis = st.number_input(
-        "Fructose zu 1 Teil Maltodextrin?",
-        min_value=0.0,
-        max_value=1.0,
-        value=0.5,
-        step=0.05
+    with st.container(border=True):
+        st.markdown("### :blue[Deine Mischung]")
+        gesamt = st.number_input(
+            "Gesamtmenge an Kohlenhydraten in g?",
+            min_value=1,
+            value=90,
+            step=5
         )
+        verhaeltnis = st.number_input(
+            "Fructose zu 1 Teil Maltodextrin?",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.5,
+            step=0.05
+            )
 
 if modus == "Flaschen + Riegel/Gels planen":
 
@@ -137,7 +139,7 @@ if modus == "Flaschen + Riegel/Gels planen":
     if (
         st.session_state["fahrt"] is not None and st.session_state["schritt"] != "fahrt"):
             with st.container(border=True):
-                st.subheader("Fahrt")
+                st.markdown("### :blue[Fahrt]")
                 st.write(
                     f"{st.session_state['fahrt']['dauer']:g} Stunden · "
                     f"{st.session_state['fahrt']['carbs_pro_stunde']:g} g KH/h"
@@ -205,7 +207,7 @@ if modus == "Flaschen + Riegel/Gels planen":
 
     if st.session_state["flaschen"] is not None and st.session_state["schritt"] != "flaschen":
         with st.container(border=True):
-            st.subheader("Flaschen")
+            st.markdown("### :blue[Flaschen]")
             flaschen_daten = st.session_state["flaschen"]
 
             if flaschen_daten["volumen"] is not None:
@@ -315,7 +317,7 @@ if modus == "Flaschen + Riegel/Gels planen":
 
     if (st.session_state["zusaetze_fertig"] and st.session_state["schritt"] != "zusatz"):
         with st.container(border=True):
-            st.subheader("Riegel & Gels")
+            st.markdown("### :blue[Riegel & Gels]")
             st.write(f"Zusätze: {len(st.session_state['zusaetze'])}")
 
             if st.button("Zusätze bearbeiten"):
@@ -394,48 +396,43 @@ if modus == "Flaschen + Riegel/Gels planen":
 
 # Ausgabe der Ergebnisse
 if modus == "Gesamtmenge berechnen":
-    st.write("Verhältnis Maltodextrin : Fructose:", "1 :", round(verhaeltnis, 2))
-    st.write("Maltodextrin:", round(malto_gesamt, 1), "g")
-    st.write("Fructose:", round(fructose_gesamt, 1), "g")
+    st.markdown("### :blue[Dein Ergebnis]")
+    st.markdown(f"**Maltodextrin:** :green[**{malto_gesamt:.1f} g**]")
+    st.markdown(f"**Fructose:** :green[**{fructose_gesamt:.1f} g**]")
 
 if modus == "Flaschen + Riegel/Gels planen":
-    st.subheader("Dein Ergebnis")
+    st.markdown("### :blue[Dein Ergebnis]")
 
-    spalte_gesamt, spalte_flasche, spalte_zusaetze = st.columns(3)
+    with st.expander("Gesamte Fahrt"):
+        st.markdown(f"**Kohlenhydrate gesamt:** :green[**{gesamt:.1f} g**]")
+        st.markdown(f"Maltodextrin: :green[{malto:.1f} g]")
+        st.markdown(f"Fructose: :green[{fructose:.1f} g]")
 
-    with spalte_gesamt:
-        st.metric("Gesamt", f"{gesamt:.0f} g")
-
-    with spalte_flasche:
-        st.metric("Pro Flasche", f"{carbs_pro_flasche:.1f} g")
-
-    with spalte_zusaetze:
-        st.metric("Zusätze", f"{carbs_zusatz_pro_stunde:.1f} g/h")
-
-    with st.container(border=True):
-        st.subheader("Mischung pro Flasche")
-        st.write(
-            f"**{malto_pro_flasche:.1f} g Maltodextrin** + "
-            f"**{fructose_pro_flasche:.1f} g Fructose**"
-        )    
-
-    with st.expander("Zusammensetzung und Konzentration"):
         if verhaeltnis_gesamt is not None:
-            st.write("Verhältnis Maltodextrin : Fructose:", "1 :", round(verhaeltnis_gesamt, 2))
+            st.markdown(f"Verhältnis Maltodextrin : Fructose: :green[1:{verhaeltnis_gesamt:.2f}]")
         elif fructose > 0:
             st.write("Gesamtverhältnis: Nur Fructose")
         else:
-            st.write("Keine Kohlenhydrate!")
+            st.write("Keine Kohlenhydrate")
 
-        st.write("Maltodextrin:", round(malto, 1), "g")
-        st.write("Fructose:", round(fructose, 1), "g")
-
+    with st.expander("Pro Flasche"):
+        st.markdown(f"**Kohlenhydrate:** :green[**{carbs_pro_flasche:.1f} g**]")
+        st.markdown(f"Maltodextrin: :green[{malto_pro_flasche:.1f} g]")
+        st.markdown(f"Fructose: :green[{fructose_pro_flasche:.1f} g]")    
         if verhaeltnis_flaschen_ist is not None:
-            st.write("Verhältnis Flasche Maltodextrin : Fructose:", "1:", round(verhaeltnis_flaschen_ist, 2))
+            st.markdown(f"Verhältnis Maltodextrin : Fructose: :green[1:{verhaeltnis_flaschen_ist:.2f}]")
         elif fructose_pro_flasche > 0:
             st.write("Flaschenverhältnis: Nur Fructose")
         else:
             st.write("Keine Kohlenhydrate in der Flasche!")
-
         if volumen_pro_flasche is not None:
-            st.write("g Kohlenhydrate pro 100 ml:", round(konzentration, 1))
+            st.markdown(f"Kohlenhydrate pro 100 ml: :green[{konzentration:.1f} g]")
+
+    with st.expander("Zusätze"):
+        st.markdown(f"**Kohlenhydrate Gesamt:** :green[**{carbs_zusatz_pro_stunde * dauer:.1f} g**]")
+        st.markdown(f"Maltodextrin: :green[{malto_zusatz_pro_stunde * dauer:.1f} g]")
+        st.markdown(f"Fructose: :green[{fructose_zusatz_pro_stunde * dauer:.1f} g]")
+
+
+
+
