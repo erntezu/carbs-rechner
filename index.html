@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0B1220">
+  <title>Carbs Rechner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="kopf">
+  <h1>Carbs Rechner</h1>
+  <button id="menu-auf" class="icon" aria-label="Menü">☰</button>
+</header>
+
+<main>
+  <p id="herkunft" class="klein" hidden></p>
+  <p id="meldung" class="meldung" hidden></p>
+
+  <!-- Fahrt -->
+  <section class="karte">
+    <div class="raster3">
+      <label>Dauer (h)<input id="g-dauer" type="number" inputmode="decimal" min="0.5" step="0.5"></label>
+      <label>KH (g/h)<input id="g-cph" type="number" inputmode="numeric" min="5" step="5"></label>
+      <label>Glukose : Fruktose
+        <span class="verh">
+          <select id="g-modus"><option value="automatisch">auto</option><option value="eigen">1 :</option></select>
+          <input id="g-r" type="number" inputmode="decimal" min="0" max="1" step="0.05" aria-label="Eigenes Verhältnis 1:r">
+        </span>
+      </label>
+    </div>
+    <p id="zusammenfassung" class="zusammenfassung"></p>
+    <div id="global-fehler"></div>
+  </section>
+
+  <!-- Timeline -->
+  <section class="karte">
+    <div class="zeile">
+      <h2>Timeline</h2>
+      <span class="knoepfe">
+        <button class="neu flasche" data-neu="flasche">+ Flasche</button>
+        <button class="neu zusatz" data-neu="zusatz">+ Riegel/Gel</button>
+      </span>
+    </div>
+    <div id="timeline" class="timeline"></div>
+    <p class="klein">Balken ziehen verschiebt · Enden ziehen ändert die Dauer · Antippen bearbeitet</p>
+    <div id="editor"></div>
+  </section>
+
+  <!-- Plan: Pack-/Mischliste + zeitliche Bilanz -->
+  <section class="karte">
+    <h2>Dein Plan</h2>
+    <div id="hinweise"></div>
+    <div id="liste"></div>
+    <div id="summe" class="summe"></div>
+  </section>
+</main>
+
+<dialog id="menu">
+  <div class="zeile"><h2>Vorlagen</h2><button class="icon" data-schliessen aria-label="Schließen">✕</button></div>
+  <p class="klein">Gespeichert nur in diesem Browser auf diesem Gerät.</p>
+  <p id="v-meldung" class="meldung" hidden></p>
+  <div class="eingabe-knopf">
+    <input id="v-name" placeholder="Name, z. B. 3 h Grundlage" maxlength="60">
+    <button id="v-speichern">Speichern</button>
+  </div>
+  <ul id="v-liste" class="vorlagen"></ul>
+
+  <h2>Übertragen</h2>
+  <div class="knoepfe breit">
+    <button id="export">Exportieren</button>
+    <label class="knopf">Importieren<input id="import" type="file" accept=".json,application/json" hidden></label>
+  </div>
+
+  <h2>Gesamtmenge aufteilen</h2>
+  <div class="raster3">
+    <label>KH gesamt (g)<input id="s-gesamt" type="number" inputmode="numeric" min="1" step="5" value="90"></label>
+    <label>Verhältnis 1 :<input id="s-r" type="number" inputmode="decimal" min="0" max="1" step="0.05" value="0.5"></label>
+    <span></span>
+  </div>
+  <p id="s-ergebnis" class="zusammenfassung"></p>
+</dialog>
+
+<div id="laden" class="laden">Rechner wird geladen …</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
